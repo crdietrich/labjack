@@ -17,61 +17,6 @@ import numpy as np
 import pandas as pd
 
 
-def sort_lj_data(directory):
-    """Sort and rename Labjack NI data logger files.  The supplied
-    data logger written in LabView does not 0 pad the appended file
-    names, consequently it's impossible to concatenate the data using
-    file name sorting without padding the 0 place.
-
-    Parameters
-    ----------
-    directory : string, absolute path of directory containing a Labjack
-        data file (.dat).  Can contain more than one data file.
-
-    Returns
-    -------
-    sorted_files : list, absolute paths to all files in directory, with
-        zero padding added to files.
-
-    Notes
-    -----
-    If files are not zero padded, sort_lj_data will pad them; otherwise
-    the files in directory will just be sorted and returned.
-    """
-
-    # parse the default archive directory set in the config file
-    file_list, dir_list = walk_dir(directory)
-
-    # sort it alpha-numerically
-    file_list.sort()
-
-    # only if the file is still without zero padding on the numbers,
-    # pad it and insert the zeros
-    for name in file_list:
-        if name[-3:] == "dat":
-            g = name.split("_")
-            h = g[1].split(".")
-            if len(h[0]) == 1:
-                k = int(h[0])
-                m = "%02d" % k
-                new_name = g[0] + "_" + m + "." + h[1]
-                os.rename(name, new_name)
-                print("Renamed file %s to %s." % (name, new_name))
-
-    # now that the files are zero padded, sorting will produce
-    # a list in chronological order
-    file_list, dir_list = walk_dir(directory)
-
-    # again skip files that are not ".dat" files
-    sorted_files = []
-    for name in file_list:
-        if name[-3:] == "dat":
-            sorted_files.append(name)
-    sorted_files.sort()
-
-    return sorted_files
-
-
 def walk_dir(root_folder):
     """Walks through a directory and compiles a numpy array of the data.
 
@@ -91,7 +36,7 @@ def walk_dir(root_folder):
         # walk through the directory and find all the files and directories
         root_folder, directories, file_list = os.walk(rf).next()
     except ValueError:
-        return False, "Unable to walk directory"
+        return False, 'Unable to walk directory'
 
     # sorting gets the .dat files as recorded in time series order
     file_list.sort()
@@ -151,7 +96,7 @@ def header_date_time(labjack_daq_file):
         l_12 = [s for s in read_specific_lines(f, [0, 1])]
     print l_12
 
-    t = time.strptime(l_12[0].strip() + l_12[1].strip(), "%m/%d/%Y%I:%M:%S %p")
+    t = time.strptime(l_12[0].strip() + l_12[1].strip(), '%m/%d/%Y%I:%M:%S %p')
     t = np.float64(time.mktime(t))
 
     return t
@@ -177,29 +122,34 @@ def lj_dataframe(folder, col_names=None):
     """
 
     # get a list of all files
-    sorted_files = sort_lj_data(folder)
+    file_list, dir_list = walk_dir(folder)
 
     # default column names
     if col_names is None:
-        col_names = ["a", "b", "c", "d", "e", "f",
-                     "y0", "y1", "y2", "y3", "y4", "y5"]
+        col_names = ['a', 'b', 'c', 'd', 'e', 'f',
+                     'y0', 'y1', 'y2', 'y3', 'y4', 'y5']
+    
+    col_names = ['time'] + col_names
 
     # access the first file
-    df = pd.read_csv(filepath_or_buffer=sorted_files[0],
-                     sep="\t",
+    df = pd.read_csv(filepath_or_buffer=file_list[0],
+                     sep='\t',
                      skiprows=12,
                      names=col_names)
 
     # append each sequential data file into one dataframe
-    for file_name in sorted_files[1:]:
+    for file_name in file_list[1:]:
         df_new = pd.read_csv(filepath_or_buffer=file_name,
-                             sep="\t",
+                             sep='\t',
                              skiprows=12,
                              names=col_names)
         df = df.append(df_new)
 
+    # sort all rows based on column 0 as Time
+    df = df.sort(columns='time', axis=0)
+
     # add unix time column
-    t0 = header_date_time(sorted_files[0])
-    df["unix_time"] = df.iloc[:, 1] + t0
+    t0 = header_date_time(file_list[0])
+    df['time_unix'] = df.iloc[:, 1] + t0
 
     return df
