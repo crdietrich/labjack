@@ -3,8 +3,8 @@ Labjack LJStreamUD Parsers
 Copyright (c) 2014 Colin Dietrich
 
 Tools for working with .dat files recorded using the Labjack LJStreamUD program.
-    parse.py : returns a Pandas DataFrame
-
+  * parse.py : returns a Pandas DataFrame
+  * parse.R  : returns an R data.frame
 
 See http://labjack.com/ for more information on Labjack.
 See http://labjack.com/support/ud/ljstreamud for details on the LJStreamUD program.
