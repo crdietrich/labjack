@@ -94,7 +94,6 @@ def header_date_time(labjack_daq_file):
     """
     with open(labjack_daq_file, 'r') as f:
         l_12 = [s for s in read_specific_lines(f, [0, 1])]
-    print l_12
 
     t = time.strptime(l_12[0].strip() + l_12[1].strip(), '%m/%d/%Y%I:%M:%S %p')
     t = np.float64(time.mktime(t))
